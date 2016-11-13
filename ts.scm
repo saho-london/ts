@@ -402,14 +402,15 @@
       (loop args 0))))
 (define tsp:-
   (lambda args   ; 引数がすべてリストになって、args に与えられる。
-    (if (null? (cdr args))
-      (ts:make-integer (- (ts:get-scheme-value (car args))))
-      (ts:make-integer 
-        (- (ts:get-scheme-value (car args)) 
-          (ts:get-scheme-value (tsp:+ (cdr args))))))))
-;(define (tsp:- n)
-;  (ts:make-integer 
-;   (- (ts:get-scheme-value n))))
+    (if (null? args)
+      (ts:error
+        "ILLEGAL NUMBER OF ARGS TO tsp:-")
+      (if (null? (cdr args))
+        (ts:make-integer 
+          (- (ts:get-scheme-value (car args))))
+        (ts:make-integer 
+          (- (ts:get-scheme-value (car args)) 
+            (ts:get-scheme-value (tsp:+ (cdr args)))))))))
 (define (tsp:* n1 n2)
   (ts:make-integer 
    (* (ts:get-scheme-value n1) (ts:get-scheme-value n2))))
