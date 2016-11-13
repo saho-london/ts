@@ -406,7 +406,7 @@
       (ts:make-integer (- (ts:get-scheme-value (car args))))
       (ts:make-integer 
         (- (ts:get-scheme-value (car args)) 
-          (ts:get-scheme-value (tsp:+ (cdr args))))))))
+          (ts:get-scheme-value (tsp:+ (cdr args)))))))
 ;(define (tsp:- n)
 ;  (ts:make-integer 
 ;   (- (ts:get-scheme-value n))))
