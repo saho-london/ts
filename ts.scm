@@ -84,6 +84,9 @@
 (define (ts:make-integer n)  (cons 'TS-TAG:INTEGER n))
 (define (ts:integer? ts-obj) (eq? (car ts-obj) 'TS-TAG:INTEGER))
 
+(define (ts:make-string s) (cons 'TS-TAG:STRING s))
+(define (ts:string? ts-obj) (eq? (car ts-obj) 'TS-TAG:STRING))
+
 (define (ts:make-symbol scheme-obj)
   (cons 'TS-TAG:SYMBOL scheme-obj))
 (define (ts:symbol? ts-obj) 
@@ -140,6 +143,7 @@
     ((null? scheme-obj)    *ts:null-obj*)
     ((boolean? scheme-obj) (ts:make-boolean scheme-obj))
     ((integer? scheme-obj) (ts:make-integer scheme-obj))
+    ((string? scheme-obj) (ts:make-string scheme-obj))
     ((symbol? scheme-obj)  (ts:make-symbol  scheme-obj))
     ((pair? scheme-obj)
       (ts:cons (ts:scheme-obj->ts-obj (car scheme-obj))
@@ -161,7 +165,7 @@
   (newline))
 (define (ts:print-exp ts-exp)
   (cond
-    ((or (ts:boolean? ts-exp) (ts:integer? ts-exp) 
+    ((or (ts:boolean? ts-exp) (ts:integer? ts-exp) (ts:string? ts-exp)
        (ts:symbol? ts-exp) (ts:null? ts-exp))
      (display (ts:get-scheme-value ts-exp)))
     ((ts:primitive-procedure? ts-exp)
@@ -187,6 +191,8 @@
     ((ts:boolean? exp)      ;** ブールデータ
      exp)                   ; 自己評価的データなので、それ自身を返す
     ((ts:integer? exp)      ;** 整数
+     exp)                   ; 自己評価的データなので、それ自身を返す
+    ((ts:string? exp)       ;** 文字列
      exp)                   ; 自己評価的データなので、それ自身を返す
     ((ts:symbol? exp)       ;** 記号
      (ts:lookup-binding     ; 束縛を調べて、変数値を見つける
@@ -374,6 +380,9 @@
   (ts:intern-prim-proc  '/       tsp:/      2)
   (ts:intern-prim-proc  '=       tsp:=      2)
   (ts:intern-prim-proc  '>       tsp:>      2)
+  (ts:intern-prim-proc  'STRING-LENGTH      tsp:string-length      1)
+  (ts:intern-prim-proc  'STRING=?           tsp:string=?           2)
+  (ts:intern-prim-proc  'STRING-APPEND      tsp:string-append      2)
   (ts:intern-prim-proc  'QUIT    tsp:quit   0))
 
 (define (tsp:cons s1 s2)
@@ -408,9 +417,18 @@
       (if (null? (cdr args))
         (ts:make-integer 
           (- (ts:get-scheme-value (car args))))
-        (ts:make-integer 
-          (- (ts:get-scheme-value (car args)) 
-            (ts:get-scheme-value (tsp:+ (cdr args)))))))))
+        (letrec
+          ((loop
+             (lambda (nums sum)  
+               ; nums は引数の数の残り、sum は和の中間結果
+               (if (null? nums)
+                 (ts:make-integer sum)
+                 (loop (cdr nums)
+                   (+ (ts:get-scheme-value (car nums)) sum))))))
+          (ts:make-integer 
+            (- (ts:get-scheme-value (car args))
+              (ts:get-scheme-value (loop (cdr args) 0)))))))))
+
 (define (tsp:* n1 n2)
   (ts:make-integer 
    (* (ts:get-scheme-value n1) (ts:get-scheme-value n2))))
@@ -423,6 +441,16 @@
 (define (tsp:> n1 n2)
   (ts:make-boolean 
     (> (ts:get-scheme-value n1) (ts:get-scheme-value n2))))
+    
+(define (tsp:string-length s)
+  (ts:make-integer 
+    (string-length (ts:get-scheme-value s))))
+(define (tsp:string=? s1 s2)
+  (ts:make-boolean
+    (string=? (ts:get-scheme-value s1) (ts:get-scheme-value s2))))
+(define (tsp:string-append s1 s2)
+  (ts:make-string 
+    (string-append (ts:get-scheme-value s1) (ts:get-scheme-value s2))))
 
 (define (tsp:quit)
   (*ts:top-level-continuation* #f))
