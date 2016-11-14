@@ -28,12 +28,12 @@
   (letrec
     ((loop    ; REPループ
        (lambda ()
-         ; 手続き ts:read-eval-print を継続付きで呼び出す
-         (if (call-with-current-continuation ts:read-eval-print)
-           (loop)      ; さらに、REP をする。
-           (begin      ; #f が返されると、インタプリタを終了する
-             (display "GOOD BYE.")
-             (newline))))))
+	 ; 手続き ts:read-eval-print を継続付きで呼び出す
+	 (if (call-with-current-continuation ts:read-eval-print)
+	   (loop)      ; さらに、REP をする。
+	   (begin      ; #f が返されると、インタプリタを終了する
+	     (display "GOOD BYE.")
+	     (newline))))))
     (loop)))  ; REPループに入る
 
 (define (ts:read-eval-print cont)
@@ -41,27 +41,27 @@
   (ts:prompt)  ; プロンプトを表示する。
   (let ((user-input (ts:read-user-input)))  ; 式を読み込む
     (let ((val (ts:eval user-input (ts:top-environ))))
-                                 ; トップレベルの環境で式を評価する
+      ; トップレベルの環境で式を評価する
       (ts:print-value val)       ; 評価結果を表示する
       #t)))
 (define *ts:scheme-system-has-force-output* #f) ; 処理系に合わせる
 (define (ts:prompt)
   (display "] ")
   (if *ts:scheme-system-has-force-output*
-      (force-output))
+    (force-output))
   #t)
 
 (define ts:error
   (lambda msg
     (letrec
       ((loop
-         (lambda (s)
-           (if (null? s)
-             (begin (newline) (newline)
-               (*ts:top-level-continuation* #t)) ;トップレベルへ
-             (begin
-               (display (car s)) (display " ")
-               (loop (cdr s)))))))
+	 (lambda (s)
+	   (if (null? s)
+	     (begin (newline) (newline)
+		    (*ts:top-level-continuation* #t)) ;トップレベルへ
+	     (begin
+	       (display (car s)) (display " ")
+	       (loop (cdr s)))))))
       (newline)
       (display "TS ERROR")
       (newline)
@@ -104,16 +104,21 @@
 (define (ts:caddr s)  (ts:car (ts:cddr s)))
 (define (ts:cadddr s) (ts:cadr (ts:cddr s)))
 
+(define (ts:map ts-func ls)
+  (if (ts:null? ls)
+    '()
+    (cons (ts-func (ts:car ls)) (ts:map ts-func (ts:cdr ls)))))
+
 (define (ts:make-compound-procedure ts-parameter-list body env)
   (letrec
     ((param-rev-loop
        (lambda (ts-params rev-params nargs)
-         (if (ts:null? ts-params)
-           (list 'TS-TAG:COMP-PROC rev-params nargs body env)
-           (param-rev-loop
-             (ts:cdr ts-params)
-             (cons (ts:car ts-params) rev-params)
-             (+ nargs 1))))))
+	 (if (ts:null? ts-params)
+	   (list 'TS-TAG:COMP-PROC rev-params nargs body env)
+	   (param-rev-loop
+	     (ts:cdr ts-params)
+	     (cons (ts:car ts-params) rev-params)
+	     (+ nargs 1))))))
     (param-rev-loop ts-parameter-list '() 0)))
 
 (define (ts:compound-procedure? ts-obj)
@@ -146,8 +151,8 @@
     ((string? scheme-obj) (ts:make-string scheme-obj))
     ((symbol? scheme-obj)  (ts:make-symbol  scheme-obj))
     ((pair? scheme-obj)
-      (ts:cons (ts:scheme-obj->ts-obj (car scheme-obj))
-               (ts:scheme-obj->ts-obj (cdr scheme-obj))))
+     (ts:cons (ts:scheme-obj->ts-obj (car scheme-obj))
+	      (ts:scheme-obj->ts-obj (cdr scheme-obj))))
     (else (ts:error "ILLEGAL INPUT:" scheme-obj))))
 
 ;** 12.2.3 {式の読み込みと表示} **
@@ -166,7 +171,7 @@
 (define (ts:print-exp ts-exp)
   (cond
     ((or (ts:boolean? ts-exp) (ts:integer? ts-exp) (ts:string? ts-exp)
-       (ts:symbol? ts-exp) (ts:null? ts-exp))
+	 (ts:symbol? ts-exp) (ts:null? ts-exp))
      (display (ts:get-scheme-value ts-exp)))
     ((ts:primitive-procedure? ts-exp)
      (display "<primitive-procedure:")
@@ -210,7 +215,7 @@
 
 (define (ts:special-form? exp)
   (case (ts:get-scheme-value (ts:car exp)) 
-    ((QUOTE IF BEGIN DEFINE SET! LAMBDA) #t)
+    ((QUOTE IF BEGIN DEFINE SET! LAMBDA LET) #t)
     (else                                #f)))
 
 (define (ts:do-special-form exp env)
@@ -220,20 +225,19 @@
     ((IF)                       ;** (IF CON EXP1 EXP2)の場合
      (let ((con (ts:eval (ts:cadr exp) env)))
        (if (not (eq? con *ts:false*)) 
-         (ts:eval (ts:caddr exp) env)
-         (ts:eval (ts:cadddr exp) env))))
+	 (ts:eval (ts:caddr exp) env)
+	 (ts:eval (ts:cadddr exp) env))))
     ((BEGIN)                    ;**(BEGIN EXP1 ...)の場合
      (ts:eval-begin (ts:cdr exp) env)) 
     ((DEFINE)
-     (if (tsp:list? (ts:cadr exp))
-;       (begin
-;         (ts:define-var
-;           (ts:car (ts:cadr exp)) (lambda (ts:cdr (ts:cadr exp)) (ts:eval (ts:caddr exp) env)) env)
-;         (ts:car (ts:cadr exp)))
-;       (begin                   ;**(DEFINE VAR EXP)の場合
-         (ts:define-var
-           (ts:cadr exp) (ts:eval (ts:caddr exp) env) env)
-         (ts:cadr exp));))
+     (if (ts:pair? (ts:cadr exp))
+       (ts:define-var
+	 (ts:car (ts:cadr exp)
+           (ts:make-compound-procedure 
+             (ts:cdr (ts:cadr exp)) (ts:cons (ts:caddr exp) *ts:null-obj) env)) env)
+       (ts:define-var           ;**(DEFINE VAR EXP)の場合
+	 (ts:cadr exp) (ts:eval (ts:caddr exp) env) env))
+     (ts:cadr exp))
     ((SET!)                     ;**(SET! VAR EXP)の場合
      (let ((val (ts:eval (ts:caddr exp) env)))
        (ts:set-var! (ts:cadr exp) val env)
@@ -241,6 +245,10 @@
     ((LAMBDA)                   ;**(LAMBDA (VAR) EXP1...)の場合
      (ts:make-compound-procedure 
        (ts:cadr exp) (ts:cddr exp) env))
+;    ((LET)
+;      ((ts:make-compound-procedure (ts:map ts:car (ts:cadr exp))
+;        (ts:cddr exp) env)
+;        (ts:map ts:cdr (ts:cadr exp))))
     (else                       ; 出てくるはずのないデータ
       (ts:error "ILLEGAL SPECIAL FORM:" exp))))
 
@@ -248,37 +256,37 @@
   (letrec
     ((begin-loop  
        (lambda (rest last)
-         (if (ts:null? (ts:cdr rest))
-             (ts:eval (ts:car rest) env)
-             (begin-loop
-              (ts:cdr rest)
-              (ts:eval (ts:car rest) env))))))
+	 (if (ts:null? (ts:cdr rest))
+	   (ts:eval (ts:car rest) env)
+	   (begin-loop
+	     (ts:cdr rest)
+	     (ts:eval (ts:car rest) env))))))
     (if (ts:null? exps)
-        *ts:null-obj*
-        (begin-loop exps *ts:null-obj*))))
+      *ts:null-obj*
+      (begin-loop exps *ts:null-obj*))))
 
 ;** 12.2.7 {手続き呼び出し} **
 
 (define (ts:do-application exp env)
   (let ((proc (ts:eval (ts:car exp) env)) ;手続きデータを取り出す
-        (args (ts:eval-args (ts:cdr exp) env))) ;引数を評価する
+	(args (ts:eval-args (ts:cdr exp) env))) ;引数を評価する
     (cond
       ((ts:compound-procedure? proc)      ;** 複合手続きの場合
        (ts:do-application-compound exp env proc args))
       ((ts:primitive-procedure? proc)     ;** 基本手続きの場合
        (ts:do-application-primitive exp env proc args))
       (else
-       (ts:error "WRONG TYPE TO APPLY")))))
+	(ts:error "WRONG TYPE TO APPLY")))))
 
 (define (ts:eval-args args env)  
   (letrec
     ((ev-arg-loop
        (lambda (args results)
-         (if (ts:null? args)
-           results            ; 反転したままの結果のリストを返す
-           (ev-arg-loop
-             (ts:cdr args)
-             (cons (ts:eval (ts:car args) env) results))))))
+	 (if (ts:null? args)
+	   results            ; 反転したままの結果のリストを返す
+	   (ev-arg-loop
+	     (ts:cdr args)
+	     (cons (ts:eval (ts:car args) env) results))))))
     (ev-arg-loop args '())))
 
 ;** 12.2.8 {基本手続きの呼び出し} **
@@ -286,27 +294,27 @@
 (define (ts:do-application-primitive exp env proc args)
   (let ((proc-nargs (ts:get-nargs-primitive-procedure proc)))
     (if (or
-          (eq? 'any proc-nargs)     ; 引数の数の整合性をチェック
-          (= (length args) proc-nargs))
+	  (eq? 'any proc-nargs)     ; 引数の数の整合性をチェック
+	  (= (length args) proc-nargs))
       (apply                        ; 引数の数が合っていれば、
-                                    ;   基本手続きを呼び出す。
-        (ts:get-body-primitive-procedure proc)
-        (reverse args))
+	;   基本手続きを呼び出す。
+	(ts:get-body-primitive-procedure proc)
+	(reverse args))
       (ts:error
-        "ILLEGAL NUMBER OF ARGS TO"
-        (ts:get-name-primitive-procedure proc)))))
+	"ILLEGAL NUMBER OF ARGS TO"
+	(ts:get-name-primitive-procedure proc)))))
 
 ;** 12.2.9 {複合手続きの呼び出し: 局所変数と文面的有効域則} **
 
 (define (ts:do-application-compound exp env proc args)
   (if (= (length args)                ; 引数の数の整合性をチェック
-        (ts:get-nargs-compound-procedure proc))
+	 (ts:get-nargs-compound-procedure proc))
     (let ((new-env                    ; 引数の数が合っていれば、
-            (ts:extend-environ        ;   環境を拡大し、
-              (ts:get-arglist-compound-procedure proc)
-              args (ts:get-env-compound-procedure proc))))
+	    (ts:extend-environ        ;   環境を拡大し、
+	      (ts:get-arglist-compound-procedure proc)
+	      args (ts:get-env-compound-procedure proc))))
       (ts:eval-begin                  ;   手続きの本体を評価する
-        (ts:get-body-compound-procedure proc) new-env))
+	(ts:get-body-compound-procedure proc) new-env))
     (ts:error
       "ILLEGAL NUMBER OF ARGS TO"
       (ts:get-name-primitive-procedure proc))))
@@ -315,12 +323,12 @@
   (letrec
     ((loop
        (lambda (vars vals bindings)
-         (if (null? vars)      ; すべての変数に対して束縛を作れば
-           (cons bindings env) ;   枠組を ENV 加えて、返す。
-           (loop (cdr vars)    ; 束縛を枠組に加えてゆく。
-                 (cdr vals) 
-                 (cons (cons (car vars) (car vals))  
-                       bindings))))))
+	 (if (null? vars)      ; すべての変数に対して束縛を作れば
+	   (cons bindings env) ;   枠組を ENV 加えて、返す。
+	   (loop (cdr vars)    ; 束縛を枠組に加えてゆく。
+		 (cdr vals) 
+		 (cons (cons (car vars) (car vals))  
+		       bindings))))))
     (loop vars vals '())))
 
 ;** 12.2.10 {変数とその値 (実現)} **
@@ -334,7 +342,7 @@
     (if binding
       (cdr binding)
       (ts:error "UNBOUND VARIABLE:" 
-        (ts:get-scheme-value var)))))
+		(ts:get-scheme-value var)))))
 
 (define (ts:define-var var val env)
   (let* ((binding (ts:find-binding2 var env)))
@@ -348,18 +356,18 @@
     (if binding
       (set-cdr! binding val)
       (ts:error "UNBOUND VARIABLE:"
-        (ts:get-scheme-value var)))))
+		(ts:get-scheme-value var)))))
 
 (define (ts:find-binding var env)
   (letrec
     ((loop
        (lambda (env)
-         (if (null? env)
-           #f                   ; 見つからなかったら #f を返す
-           (let ((binding (assoc var (car env))))
-             (if binding
-               binding               ; 見つかれば、その束縛を返す
-               (loop (cdr env)))))))); 次の枠組の中を探す
+	 (if (null? env)
+	   #f                   ; 見つからなかったら #f を返す
+	   (let ((binding (assoc var (car env))))
+	     (if binding
+	       binding               ; 見つかれば、その束縛を返す
+	       (loop (cdr env)))))))); 次の枠組の中を探す
     (loop env)))
 
 (define (ts:find-binding2 var env)
@@ -406,59 +414,59 @@
 (define (tsp:pair? s)
   (ts:make-boolean (ts:pair? s)))
 (define (tsp:list? s)
-   (letrec
+  (letrec
     ((loop
-      (lambda (obj)
-        (if (ts:null? obj)
-          (ts:make-boolean #t)
-          (if (ts:pair? obj)
-            (loop (ts:cdr obj))
-            (ts:make-boolean #f))))))
-     (loop s)))
+       (lambda (obj)
+	 (if (ts:null? obj)
+	   (ts:make-boolean #t)
+	   (if (ts:pair? obj)
+	     (loop (ts:cdr obj))
+	     (ts:make-boolean #f))))))
+    (loop s)))
 (define tsp:+
   (lambda args   ; 引数がすべてリストになって、args に与えられる。
     (letrec
       ((loop
-         (lambda (nums sum)  
-           ; nums は引数の数の残り、sum は和の中間結果
-           (if (null? nums)
-             (ts:make-integer sum)
-             (loop (cdr nums)
-               (+ (ts:get-scheme-value (car nums)) sum))))))
+	 (lambda (nums sum)  
+	   ; nums は引数の数の残り、sum は和の中間結果
+	   (if (null? nums)
+	     (ts:make-integer sum)
+	     (loop (cdr nums)
+		   (+ (ts:get-scheme-value (car nums)) sum))))))
       (loop args 0))))
 (define tsp:-
   (lambda args   ; 引数がすべてリストになって、args に与えられる。
     (if (null? args)
       (ts:error
-        "ILLEGAL NUMBER OF ARGS TO tsp:-")
+	"ILLEGAL NUMBER OF ARGS TO tsp:-")
       (if (null? (cdr args))
-        (ts:make-integer 
-          (- (ts:get-scheme-value (car args))))
-        (letrec
-          ((loop
-             (lambda (nums sum)  
-               ; nums は引数の数の残り、sum は和の中間結果
-               (if (null? nums)
-                 (ts:make-integer sum)
-                 (loop (cdr nums)
-                   (+ (ts:get-scheme-value (car nums)) sum))))))
-          (ts:make-integer 
-            (- (ts:get-scheme-value (car args))
-              (ts:get-scheme-value (loop (cdr args) 0)))))))))
+	(ts:make-integer 
+	  (- (ts:get-scheme-value (car args))))
+	(letrec
+	  ((loop
+	     (lambda (nums sum)  
+	       ; nums は引数の数の残り、sum は和の中間結果
+	       (if (null? nums)
+		 (ts:make-integer sum)
+		 (loop (cdr nums)
+		       (+ (ts:get-scheme-value (car nums)) sum))))))
+	  (ts:make-integer 
+	    (- (ts:get-scheme-value (car args))
+	       (ts:get-scheme-value (loop (cdr args) 0)))))))))
 
 (define (tsp:* n1 n2)
   (ts:make-integer 
-   (* (ts:get-scheme-value n1) (ts:get-scheme-value n2))))
+    (* (ts:get-scheme-value n1) (ts:get-scheme-value n2))))
 (define (tsp:/ n1 n2)
   (ts:make-integer 
-   (quotient (ts:get-scheme-value n1) (ts:get-scheme-value n2))))
+    (quotient (ts:get-scheme-value n1) (ts:get-scheme-value n2))))
 (define (tsp:= n1 n2)
   (ts:make-boolean 
     (= (ts:get-scheme-value n1) (ts:get-scheme-value n2))))
 (define (tsp:> n1 n2)
   (ts:make-boolean 
     (> (ts:get-scheme-value n1) (ts:get-scheme-value n2))))
-    
+
 (define (tsp:string-length s)
   (ts:make-integer 
     (string-length (ts:get-scheme-value s))))
