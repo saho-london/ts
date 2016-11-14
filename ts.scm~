@@ -224,10 +224,16 @@
          (ts:eval (ts:cadddr exp) env))))
     ((BEGIN)                    ;**(BEGIN EXP1 ...)の場合
      (ts:eval-begin (ts:cdr exp) env)) 
-    ((DEFINE)                   ;**(DEFINE VAR EXP)の場合
-     (ts:define-var
-       (ts:cadr exp) (ts:eval (ts:caddr exp) env) env)
-     (ts:cadr exp))
+    ((DEFINE)
+     (if (tsp:list? (ts:cadr exp))
+       (begin
+         (ts:define-var
+           (ts:car (ts:cadr exp)) (lambda (ts:cdr (ts:cadr exp)) (ts:eval (ts:caddr exp) env)) env)
+         (ts:car (ts:cadr exp)))
+       (begin                   ;**(DEFINE VAR EXP)の場合
+         (ts:define-var
+           (ts:cadr exp) (ts:eval (ts:caddr exp) env) env)
+         (ts:cadr exp))))
     ((SET!)                     ;**(SET! VAR EXP)の場合
      (let ((val (ts:eval (ts:caddr exp) env)))
        (ts:set-var! (ts:cadr exp) val env)
@@ -374,6 +380,7 @@
   (ts:intern-prim-proc  'CAR     tsp:car    1)
   (ts:intern-prim-proc  'CDR     tsp:cdr    1)
   (ts:intern-prim-proc  'PAIR?   tsp:pair?  1)
+  (ts:intern-prim-proc  'LIST?   tsp:list?  1)
   (ts:intern-prim-proc  '+       tsp:+      'any)
   (ts:intern-prim-proc  '-       tsp:-      'any)
   (ts:intern-prim-proc  '*       tsp:*      2)
@@ -398,6 +405,16 @@
     (eq? (ts:get-scheme-value s1) (ts:get-scheme-value s2))))
 (define (tsp:pair? s)
   (ts:make-boolean (ts:pair? s)))
+(define (tsp:list? s)
+   (letrec
+    ((loop
+      (lambda (obj)
+        (if (ts:null? obj)
+          (ts:make-boolean #t)
+          (if (ts:pair? obj)
+            (loop (ts:cdr obj))
+            (ts:make-boolean #f))))))
+     (loop s)))
 (define tsp:+
   (lambda args   ; 引数がすべてリストになって、args に与えられる。
     (letrec
@@ -446,7 +463,8 @@
   (ts:make-integer 
     (string-length (ts:get-scheme-value s))))
 (define (tsp:string=? s1 s2)
-  (string=? (ts:get-scheme-value s1) (ts:get-scheme-value s2)))
+  (ts:make-boolean
+    (string=? (ts:get-scheme-value s1) (ts:get-scheme-value s2))))
 (define (tsp:string-append s1 s2)
   (ts:make-string 
     (string-append (ts:get-scheme-value s1) (ts:get-scheme-value s2))))
