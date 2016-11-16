@@ -32,63 +32,63 @@
 
 \section{プログラム解説書}
 \subsection{1.1. 基本手続き*の追加}
-\subsubsection{ts:intern-primitive-proceduresに*を追加}
+\subsubsection{l.384 ts:intern-primitive-proceduresに*を追加}
 これによって、(ts)実行時に'*と関数tsp:*、引数の数2の情報が基本手続き*として登録される。\par
-\subsubsection{tsp:*の定義}
+\subsubsection{l.457 tsp:*の定義}
 TSのintegerとして与えられた引数からschemeの値を取り出し、それらの引数をschemeの*に与えて評価した値をTSのintegerに直す。これをこの関数を評価した値とする。\par
 
 \subsection{1.2. 基本手続き/の追加}
-\subsubsection{ts:intern-primitive-proceduresにを追加}
+\subsubsection{l.384 ts:intern-primitive-proceduresにを追加}
 これによって、(ts)実行時に'/と関数tsp:/、引数の数2の情報が基本手続き/として登録される。\par
-\subsubsection{tsp:*の定義}
+\subsubsection{l.460 tsp:/の定義}
 TSのintegerとして与えられた引数からschemeの値を取り出し、それらの引数をschemeのquotientに与えて評価した値をTSのintegerに直す。これをこの関数を評価した値とする。schemeの関数quotientを評価した値は整数割り算の商であり、これは実数の範囲で割り算をし、小数点を切り捨てた値と同じである。\par
 
 \subsection{1.3. 基本手続き-の改良}
-\subsubsection{ts:intern-primitive-proceduresの-を変更}
+\subsubsection{l.384 ts:intern-primitive-proceduresの-を変更}
 これによって、(ts)実行時に登録される基本手続き-の引数の数を2から'anyに変更できる。\par
-\subsubsection{tsp:-の定義}
+\subsubsection{l.437 tsp:-の定義}
 再帰呼び出しによって和を求める関数loop-sumを用意し、それを利用して、第一引数から第二引数以降をloop-sumに渡して得た和を引いた値をtsp:-を評価した値とする。\par
 
 \subsection{1.4. 基本手続き-の改良}
-\subsubsection{tsp:-の定義}
+\subsubsection{l.437 tsp:-の定義}
 引数がひとつかどうかを判定し、二つ以上であれば1.3.のプログラムを実行し、ひとつであれば、その引数から得たschemeの値をschemeの-関数に渡した値をTSのintegerに直し、この関数を評価した値とする。
 
 \subsection{1.8. 基本手続きlist?の追加}
-\subsubsection{ts:intern-primitive-proceduresにlist?を追加}
+\subsubsection{l.384 ts:intern-primitive-proceduresにlist?を追加}
 これによって、(ts)実行時に'LIST?と関数tsp:list?、引数の数1の情報が基本手続きlist?として登録される。\par
-\subsubsection{tsp:list?の定義}
+\subsubsection{l.416 tsp:list?の定義}
 再帰呼び出しによってcdrを辿り、空リスト'()に行き着けばlistである、そうでなければlistでないとする。\par
 
 \subsection{2.18. 文字列型の追加}
-\subsubsection{ts:make-string関数}
+\subsubsection{l.87 ts:make-string関数}
 schemeの値とSTRINGタグとのペアを作る。\par
-\subsubsection{ts:string?関数}
+\subsubsection{l.88 ts:string?関数}
 STRINGタグがついていればstringであると判定する。\par
-\subsubsection{ts:scheme-obj->ts-objにstringを追加}
+\subsubsection{l.146 ts:scheme-obj->ts-objにstringを追加}
 読み込み等するときにschemeのstring型であればTSのstring型に変換するように追加。\par
-\subsubsection{ts:print-valueにstringを追加}
+\subsubsection{l.171 ts:print-expにstringを追加}
 TSのstring型は値をそのまま表示するようにifの条件に追加。\par
-\subsubsection{ts:evalにstringを追加}
+\subsubsection{l.192 ts:evalにstringを追加}
 string型を評価した場合それ自身を返すように追加。\par
-\subsubsection{ts:intern-primitive-proceduresに代表的な文字列を扱う基本手続きを追加}
+\subsubsection{l.384 ts:intern-primitive-proceduresに代表的な文字列を扱う基本手続きを追加}
 今回はstring-length、string=?、string-appendを追加。
-\subsubsection{tsp:string-lengthの定義}
+\subsubsection{l.470 tsp:string-lengthの定義}
 schemeのstring-lengthを利用して実装。\par
-\subsubsection{tsp:string=?の定義}
+\subsubsection{l.473 tsp:string=?の定義}
 schemeのstring=?を利用して実装。\par
-\subsubsection{tsp:string-appendの定義}
+\subsubsection{l.476 tsp:string-appendの定義}
 schemeのstring-appendを利用して実装。\par
 
 \subsection{3.27. defineの改良}
-\subsubsection{ts:do-special-form関数}
+\subsubsection{l.221 ts:do-special-form関数}
 (DEFINE)のcaseを編集。ts:do-special-formに渡された引数のリストの２つめの要素（以下defineの第一引数と呼ぶ)がペア（要素１以上のリストもしくはペア）であれば、簡略記法であると判断する。その場合は、適切に引数の順序を入れ替え、等価な通常の記法の形に直してdefine-varに渡す。TSのlambdaはそれ自身独立した関数として定義されていなかったので、ts:make-compound-procedureを利用した。間略記法でない場合は以前の通りに評価する。\par
 
 \subsection{5.29. letの追加}
-\subsubsection{ts:map関数}
-letを実装するために、関数とリストを引数にとり、リストの各項目に関数を適応して得られた値をリストにして返すmap関数を実装。\par
-\subsubsection{ts:special-form?関数に追加}
+\subsubsection{l.107 ts:map関数}
+letを実装するために、関数とリストを引数にとり、リストの各項目に関数を適応して得られた値をリストにして返すmap関数を実装。schemeにのっとるなら基本手続きに追加するべきだが、map関数自身が課題なのではなくletのために内部から利用するだけなので、今回は基本手続きには追加しなかった。\par
+\subsubsection{l.216 ts:special-form?関数に追加}
 letを特殊形式として登録。\par
-\subsubsection{ts:do-special-form関数}
+\subsubsection{l.221 ts:do-special-form関数}
 letに与えられた引数をmap関数を利用して適切に並べ替え、3.27.のdefineの改良同様、lambdaの代わりのts:make-compound-procedureに渡した。\par
 
 
