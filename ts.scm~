@@ -245,10 +245,10 @@
     ((LAMBDA)                   ;**(LAMBDA (VAR) EXP1...)の場合
      (ts:make-compound-procedure 
        (ts:cadr exp) (ts:cddr exp) env))
-    ((LET)
-      ((ts:make-compound-procedure (ts:map ts:car (ts:cadr exp))
-        (ts:cddr exp) env)
-        (ts:map ts:cdr (ts:cadr exp))))
+;    ((LET)
+;      ((ts:make-compound-procedure (ts:map ts:car (ts:cadr exp))
+;        (ts:cddr exp) env)
+;        (ts:map ts:cdr (ts:cadr exp))))
     (else                       ; 出てくるはずのないデータ
       (ts:error "ILLEGAL SPECIAL FORM:" exp))))
 
@@ -422,7 +422,7 @@
 	   (if (ts:pair? obj)
 	     (loop (ts:cdr obj))
 	     (ts:make-boolean #f))))))
-    (loop s)))
+    (ts:make-boolean(loop s))))
 (define tsp:+
   (lambda args   ; 引数がすべてリストになって、args に与えられる。
     (letrec
@@ -443,16 +443,16 @@
 	(ts:make-integer 
 	  (- (ts:get-scheme-value (car args))))
 	(letrec
-	  ((loop
+	  ((loop-sum
 	     (lambda (nums sum)  
 	       ; nums は引数の数の残り、sum は和の中間結果
 	       (if (null? nums)
-		 (ts:make-integer sum)
-		 (loop (cdr nums)
+		 (sum)
+		 (loop-sum (cdr nums)
 		       (+ (ts:get-scheme-value (car nums)) sum))))))
 	  (ts:make-integer 
 	    (- (ts:get-scheme-value (car args))
-	       (ts:get-scheme-value (loop (cdr args) 0)))))))))
+	       (loop-sum (cdr args) 0))))))))
 
 (define (tsp:* n1 n2)
   (ts:make-integer 
